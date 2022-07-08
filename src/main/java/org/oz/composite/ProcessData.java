@@ -40,7 +40,7 @@ public class ProcessData implements IProcessData, Cloneable {
     public void addMessage(int statusCode, String statusMessage) {
         String caller = this.getCaller();
         ILogMessage currentLog = this.log.containsKey(caller)
-                ? (ILogMessage) this.log.get(caller)
+                ? (ILogMessage) this.log.get(caller).get(this.log.get(caller).size() - 1)
                 : new LogMessage();
         currentLog.setCaller(caller);
         currentLog.addStatusMessage(statusCode, statusMessage);
@@ -89,8 +89,14 @@ public class ProcessData implements IProcessData, Cloneable {
         //TODO fetch caller
         StackTraceElement[] elements = Thread.currentThread().getStackTrace();
 
-        return elements.length > 5
-            ? String.format("%s::%s", elements[4].getClassName(), elements[4].getMethodName())
+        int index = 0;
+        while(!elements[index].getMethodName().equals("exec") && !elements[index].getClassName().contains("ChainExcecutionAbs")) {
+            index++;
+        }
+
+        index--;
+        return index > 0
+            ? String.format("%s::%s", elements[index].getClassName(), elements[index].getMethodName())
             : "unknown";
     }
 
