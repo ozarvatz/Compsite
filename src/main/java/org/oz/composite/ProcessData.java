@@ -1,6 +1,7 @@
 package org.oz.composite;
 
 import java.util.*;
+import java.util.concurrent.Future;
 
 import org.apache.commons.lang3.SerializationUtils;
 
@@ -12,12 +13,14 @@ public class ProcessData implements IProcessData, Cloneable {
 
     private Hashtable<String, Object> mainData;
     private Hashtable<String, List<ILogMessage>> log;
+    private List<FutureCompositeWrapper> futures;
 
     //TODO add jsonNode for messages
 
     public ProcessData() {
         this.mainData = new Hashtable<>();
         this.log = new Hashtable<>();
+        this.futures = new ArrayList<FutureCompositeWrapper>();
     }
 
     public ProcessData(IProcessData pData) {
@@ -60,18 +63,19 @@ public class ProcessData implements IProcessData, Cloneable {
     }
 
     @Override
-    public void addTimeConsumed(long timeConsumed) {
-        String caller = this.getCaller();
+    public void addTimeConsumed(String caller, long timeConsumed) {
+        caller = null == caller ? this.getCaller() : caller;
         ILogMessage currentLog = this.log.containsKey(caller)
                 ? (ILogMessage) this.log.get(caller).get(this.log.get(caller).size() - 1)
                 : new LogMessage();
+        currentLog.setCaller(caller);
         currentLog.setTimeConsumed(timeConsumed);
     }
 
 
     @Override
     public int getStatusCode() {
-        if(this.mainData.containsKey(STATUS_CODE)) {
+        if (this.mainData.containsKey(STATUS_CODE)) {
             return (int) this.mainData.get(STATUS_CODE);
         }
         return 0;
@@ -79,9 +83,9 @@ public class ProcessData implements IProcessData, Cloneable {
 
     @Override
     public String getStatusMessage() {
-        if(this.mainData.containsKey(STATUS_MESSAGE)) {
+        if (this.mainData.containsKey(STATUS_MESSAGE)) {
             return (String) this.mainData.get(STATUS_MESSAGE);
-        } 
+        }
         return null;
     }
 
@@ -90,21 +94,21 @@ public class ProcessData implements IProcessData, Cloneable {
         StackTraceElement[] elements = Thread.currentThread().getStackTrace();
 
         int index = 0;
-        while(!elements[index].getMethodName().equals("exec") && !elements[index].getClassName().contains("ChainExcecutionAbs")) {
+        while (!elements[index].getMethodName().equals("exec") && !elements[index].getClassName().contains("ChainExcecutionAbs")) {
             index++;
         }
 
         index--;
         return index > 0
-            ? String.format("%s::%s", elements[index].getClassName(), elements[index].getMethodName())
-            : "unknown";
+                ? String.format("%s::%s", elements[index].getClassName(), elements[index].getMethodName())
+                : "unknown";
     }
 
     private void setStatusMessageAndCode(int newCode, String newMessage) {
         int currentCode = this.mainData.containsKey(STATUS_CODE)
                 ? (int) this.mainData.get(STATUS_CODE)
                 : 0;
-        if(ProcessUtil.isSeverer(currentCode, newCode)) {
+        if (ProcessUtil.isSeverer(currentCode, newCode)) {
             this.mainData.put(STATUS_CODE, newCode);
             this.mainData.put(STATUS_MESSAGE, newMessage);
         }
@@ -115,4 +119,20 @@ public class ProcessData implements IProcessData, Cloneable {
         return mainData;
     }
 
+    @Override
+    public void addFuture(FutureCompositeWrapper future) {
+        this.futures.add(future);
+    }
+
+    @Override
+    public List<FutureCompositeWrapper> getFutures() {
+        return this.futures;
+    }
+
+    @Override
+    public void clearFutures() {
+        this.futures.clear();
+    }
+
 }
+

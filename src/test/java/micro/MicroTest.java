@@ -29,7 +29,7 @@ public class MicroTest {
 
             @Override
             public String getDescription() {
-                return null;
+                return "basic test compo!!!";
             }
         };
         executor.add(new ChainExcecutionAbs() {
@@ -54,6 +54,16 @@ public class MicroTest {
         Compo compo = new Compo();
         compo.add(new DoXLeaf());
         compo.add(new DoYLeaf());
+        boolean retExec = compo.execute(pData);
+
+        Assertions.assertTrue(retExec);
+    }
+
+    @Test void doXAsyncYsync() {
+        ProcessData pData = new ProcessData();
+        Compo compo = new Compo();
+        compo.add(new DoXLeaf().asynchronous(true));
+        compo.add(new DoYLeaf().asynchronous(true).join(true));
         boolean retExec = compo.execute(pData);
 
         Assertions.assertTrue(retExec);

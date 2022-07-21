@@ -1,0 +1,9 @@
+org\oz\composite\FutureCompositeWrapper.class
+org\oz\composite\ProcessUtil.class
+org\oz\composite\ChainExcecutionAbs.class
+org\oz\composite\IProcessData.class
+org\oz\composite\IChainExecution.class
+org\oz\composite\ProcessUtil$1.class
+org\oz\composite\ILogMessage.class
+org\oz\composite\LogMessage.class
+org\oz\composite\ProcessData.class
