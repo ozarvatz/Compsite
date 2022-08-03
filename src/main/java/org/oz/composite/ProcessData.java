@@ -7,9 +7,9 @@ import org.apache.commons.lang3.SerializationUtils;
 
 
 public class ProcessData implements IProcessData, Cloneable {
-    static final private String LOG_KEY = "log_key";
-    static final private String STATUS_MESSAGE = "status_message";
-    static final private String STATUS_CODE = "status_code";
+    static final public String LOG_KEY = "log_key";
+    static final public String STATUS_MESSAGE = "status_message";
+    static final public String STATUS_CODE = "status_code";
 
     private Hashtable<String, Object> mainData;
     private Hashtable<String, List<ILogMessage>> log;

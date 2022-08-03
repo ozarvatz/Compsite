@@ -1,13 +1,16 @@
 package org.oz.composite;
 
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadPoolExecutor;
 
 public abstract class ChainExcecutionAbs implements IChainExecution {
+
+    private static final int CONTINUE_TO_RUN             = 1;
+    private static final int STOP_RUNNING_RETURN_FALSE   = 2;
+    private static final int STOP_RUNNING_RETURN_TRUE    = 3;
 
     private LinkedList<IChainExecution> children;
     private boolean returnTrueOnFalse;
@@ -17,7 +20,13 @@ public abstract class ChainExcecutionAbs implements IChainExecution {
     private boolean join;
     private long joinTimeout;
     private boolean joinMayInterruptRunning;
+    private Set<?> customSet;
+    private String customKey;
+    private Set<Integer> statusOnly;
+    private ForeachCompoHelper foreachCompoHelper;
+
     private ExecutorService executorService;
+
 
     abstract public boolean run(IProcessData pData);
 
@@ -29,6 +38,7 @@ public abstract class ChainExcecutionAbs implements IChainExecution {
         this.join           = false;
         this.joinTimeout    = 2000;
         this.executorService = Executors.newFixedThreadPool(5);
+        this.statusOnly = null;
     }
 
     @Override
@@ -66,13 +76,20 @@ public abstract class ChainExcecutionAbs implements IChainExecution {
     private boolean exec(IProcessData pData) {
         this.beforeRun(pData);
         boolean returnValue = true;
+
+        if(STOP_RUNNING_RETURN_TRUE == this.calcIfInCustomOnly(pData)) {return true;}
+
         Iterator<IChainExecution> processIT = null == this.children
                 ? null
                 : this.children.iterator();
         if(null != processIT) {
-            while(returnValue && processIT.hasNext()){
-                IChainExecution process = processIT.next();
-                returnValue = process.execute(pData);
+            while(processIT.hasNext()){
+                ChainExcecutionAbs process = (ChainExcecutionAbs) processIT.next();
+                if(returnValue || process.isInCustom(pData)) {
+                    returnValue = process.execute(pData);
+                } else {
+                    break;
+                }
             }
         }
 
@@ -192,4 +209,66 @@ public abstract class ChainExcecutionAbs implements IChainExecution {
         return joinedReturnValue;
     }
 
+
+
+    @Override
+    public IChainExecution runIfInCustomOnly(String customKey, Set<?> customSet) {
+        this.customKey = customKey;
+        this.customSet = customSet;
+        return this;
+    }
+
+    protected boolean isInCustom(IProcessData pd) {
+        Object obj = pd.get(this.customKey);
+        return (null != this.customSet && this.customSet.contains(obj));
+    }
+
+    private int calcIfInCustomOnly(IProcessData pd) {
+        if(null == this.customSet) {
+            return CONTINUE_TO_RUN;
+        }
+
+        if(!this.isInCustom(pd)) {
+            pd.addMessage(ProcessUtil.OK,
+                    String.format("process skipped, custom role %s is not in customSet %s",
+                            this.customKey,
+                            this.customSet.toString()));
+            return STOP_RUNNING_RETURN_TRUE;
+        }
+        return CONTINUE_TO_RUN;
+    }
+
+
+    @Override
+    public IChainExecution foreach(String queueName, boolean returnOnTrue, boolean returnOnFalse, int limit) {
+        this.foreachCompoHelper = new ForeachCompoHelper(queueName, returnOnTrue, returnOnFalse, limit);
+        return this;
+    }
+
+    @Override
+    public Object poll(ProcessData pData) {
+        if(ForeachCompoHelper.VALID == this.foreachCompoHelper.validate(pData)) {
+            Queue<?> element = (Queue<?>) pData.get(this.foreachCompoHelper.getQueueName());
+            if(null == element) { return null; }
+            if(element.size() > ((ThreadPoolExecutor) this.executorService).getActiveCount() + 3) {
+                return element.poll();
+            } else {
+                synchronized (element) {
+                    if(element.size() > 0) {
+                        return element.poll();
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    private boolean calcForeachLoop(ProcessData pData, int[] loop) {
+        loop[0] = 1;
+        if(null == this.foreachCompoHelper) { return true; }
+        switch (this.foreachCompoHelper.validate(pData)) {
+            case ForeachCompoHelper.VALID:
+                this.foreachCompoHelper.
+        }
+    }
 }

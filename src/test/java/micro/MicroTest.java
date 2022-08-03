@@ -3,6 +3,7 @@ package micro;
 import compoz.Compo;
 import compoz.DoXLeaf;
 import compoz.DoYLeaf;
+import compoz.FailedDoZLeaf;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.oz.composite.ChainExcecutionAbs;
@@ -14,6 +15,8 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.assertj.core.api.Assertions.*;
 import org.springframework.util.Assert;
+
+import java.util.HashSet;
 
 @SpringBootTest(classes=MicroTest.class)
 public class MicroTest {
@@ -63,7 +66,19 @@ public class MicroTest {
         ProcessData pData = new ProcessData();
         Compo compo = new Compo();
         compo.add(new DoXLeaf().asynchronous(true));
-        compo.add(new DoYLeaf().asynchronous(true).join(true));
+        compo.add(new DoYLeaf().asynchronous(true).join(true, 350, true));
+        boolean retExec = compo.execute(pData);
+
+        Assertions.assertTrue(retExec);
+    }
+
+    @Test void doIfCustomRoleInArray() {
+        ProcessData pData = new ProcessData();
+        Compo compo = new Compo();
+        compo.add(new FailedDoZLeaf());
+        compo.add(new DoXLeaf().runIfInCustomOnly(ProcessData.STATUS_CODE, new HashSet<Integer>(){{add(ProcessUtil.PROCESS_FAIL);}}));
+        compo.add(new DoYLeaf().asynchronous(true).join(true, 3500, true));
+
         boolean retExec = compo.execute(pData);
 
         Assertions.assertTrue(retExec);
