@@ -1,10 +1,7 @@
 package org.oz.composite;
 
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.*;
 
 public abstract class ChainExcecutionAbs implements IChainExecution {
 
@@ -46,31 +43,44 @@ public abstract class ChainExcecutionAbs implements IChainExecution {
         //copy pData if this process is not chained
         IProcessData pd = this.chained ? pData : new ProcessData(pData);
 
-        boolean returnValue = true;
-        if(this.runAsync) {
-            Future<?> future = this.executorService.submit(() -> {
-                return this.exec(pd);
-            });
+        int[] loop = new int[]{1};
+        boolean returnValue = this.calcForeachLoop(pd, loop);
+        boolean stopLoop = false;
+        while (!stopLoop && loop[0]-- > 0){
+            if (this.runAsync) {
+                Future<?> future = this.executorService.submit(() -> {
+                    return this.exec(pd);
+                });
 
-            pData.addFuture(new FutureCompositeWrapper(future, this.getClass().getName(), this.chained, this.returnTrueOnFalse));
+                pData.addFuture(new FutureCompositeWrapper(future, this.getClass().getName(), this.chained, this.returnTrueOnFalse));
 
-            pData.addMessage(ProcessUtil.PROCESS_INFO,
-                    String.format("start new thread for %s", this.getClass().getSimpleName()));
+                pData.addMessage(ProcessUtil.PROCESS_INFO,
+                        String.format("start new thread for %s", this.getClass().getSimpleName()));
 
-        } else {
-            returnValue = this.exec(pd);
-
+            } else {
+                returnValue = this.exec(pd);
+                stopLoop = this.calcStopLoop(returnValue);
+            }
         }
 
         if(this.join) {
-            returnValue = this.wait(pData);
+            boolean threadReturnValue = this.wait(pData);
+            returnValue &= this.returnTrueOnFalse || threadReturnValue;
             pData.clearFutures();
         }
+
         return this.calculateReturnVal(returnValue);
     }
 
+    private boolean calcStopLoop(boolean returnVal) {
+        if(null == this.foreachCompoHelper) { return false; }
+        if(this.foreachCompoHelper.isReturnOnFalse() && !returnVal) { return true; }
+        if(this.foreachCompoHelper.isReturnOnTrue() && returnVal) { return true; }
+        return false;
+    }
     private boolean calculateReturnVal(boolean currentRetVal) {
-        return this.returnTrueOnFalse ? true : currentRetVal;
+        if(this.returnTrueOnFalse) { return true; }
+        return currentRetVal || !this.chained;
     }
 
     private boolean exec(IProcessData pData) {
@@ -246,7 +256,7 @@ public abstract class ChainExcecutionAbs implements IChainExecution {
     }
 
     @Override
-    public Object poll(ProcessData pData) {
+    public Object poll(IProcessData pData) {
         if(ForeachCompoHelper.VALID == this.foreachCompoHelper.validate(pData)) {
             Queue<?> element = (Queue<?>) pData.get(this.foreachCompoHelper.getQueueName());
             if(null == element) { return null; }
@@ -263,12 +273,38 @@ public abstract class ChainExcecutionAbs implements IChainExecution {
         return null;
     }
 
-    private boolean calcForeachLoop(ProcessData pData, int[] loop) {
+    private boolean calcForeachLoop(IProcessData pData, int[] loop) {
         loop[0] = 1;
+        String message = null;
         if(null == this.foreachCompoHelper) { return true; }
         switch (this.foreachCompoHelper.validate(pData)) {
             case ForeachCompoHelper.VALID:
-                this.foreachCompoHelper.
+                loop[0] = this.foreachCompoHelper.getIterations();
+                return true;
+            case ForeachCompoHelper.NOT_VALID_QUEUE_SIZE_0:
+                message = "failed run foreach, expect %s to be more then 0, description: %s";
+                String.format(message,
+                        this.foreachCompoHelper.getQueueName(),
+                        this.getDescription());
+                break;
+            case ForeachCompoHelper.NOT_VALID_NOT_CONCORENT_LINKED_QUEUE:
+                message = "failed run foreach, expect %s to be instance of %s, description: %s";
+                String.format(message,
+                        this.foreachCompoHelper.getQueueName(),
+                        ConcurrentLinkedQueue.class.getSimpleName(),
+                        this.getDescription());
+                break;
+            case ForeachCompoHelper.NOT_VALID_NULL_QUEUE:
+                message = "failed run foreach, %s is null, description: %s";
+                String.format(message,
+                        this.foreachCompoHelper.getQueueName(),
+                        this.getDescription());
+
+                break;
+
         }
+        pData.addMessage(ProcessUtil.PROCESS_FAIL,
+                message);
+        return false;
     }
 }

@@ -60,6 +60,6 @@ public interface IChainExecution {
      * @param pData - the processData that contains the queue.
      * @return the element.
      */
-    public Object poll(ProcessData pData);
+    public Object poll(IProcessData pData);
 }
 

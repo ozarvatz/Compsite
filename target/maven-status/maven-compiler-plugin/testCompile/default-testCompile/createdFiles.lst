@@ -1,7 +1,12 @@
 micro\MicroTest$2.class
 micro\MicroTest.class
+micro\MicroTest$4.class
 compoz\Compo.class
 compoz\DoXLeaf.class
 compoz\FailInDoStaffLeaf.class
 micro\MicroTest$1.class
 compoz\DoYLeaf.class
+compoz\FailedDoZLeaf.class
+micro\MicroTest$5.class
+compoz\RunLoopLeaf.class
+micro\MicroTest$3.class

@@ -44,12 +44,14 @@ public class ForeachCompoHelper {
         return iterations;
     }
     
-    public int validate(final ProcessData pData) {
+    public int validate(final IProcessData pData) {
         Queue<?> queue = (Queue<?>) pData.get(this.queueName);
         if(null == queue) { return NOT_VALID_NULL_QUEUE; }
         if(queue.size() == 0) { return NOT_VALID_QUEUE_SIZE_0; }
         if(!(queue instanceof ConcurrentLinkedQueue)) { return NOT_VALID_NOT_CONCORENT_LINKED_QUEUE; }
-        this.iterations = Math.min(queue.size(), this.limit);
+        this.iterations = this.limit == 0
+                ? queue.size()
+                : Math.min(queue.size(), this.limit);
 
         return VALID;
     }
