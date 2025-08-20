@@ -9,8 +9,6 @@
         <module name="Composite" />
       </profile>
     </annotationProcessing>
-    <bytecodeTargetLevel>
-      <module name="Composite" target="11" />
-    </bytecodeTargetLevel>
+    <bytecodeTargetLevel target="21" />
   </component>
 </project>
