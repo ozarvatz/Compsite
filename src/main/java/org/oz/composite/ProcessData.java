@@ -40,7 +40,7 @@ public class ProcessData implements IProcessData, Cloneable {
     public void addMessage(int statusCode, String statusMessage) {
         String caller = this.getCaller();
         ILogMessage currentLog = this.log.containsKey(caller)
-                ? (ILogMessage) this.log.get(caller)
+                ? (ILogMessage) this.log.get(caller).getLast()
                 : new LogMessage();
         currentLog.setCaller(caller);
         currentLog.addStatusMessage(statusCode, statusMessage);

@@ -5,4 +5,8 @@ org/oz/composite/ProcessUtil.class
 org/oz/composite/ILogMessage.class
 org/oz/composite/IChainExecution.class
 org/oz/composite/IProcessData.class
+org/oz/composite/example/DoXLeaf.class
+org/oz/composite/example/ExcecutorCompo.class
+org/oz/composite/example/DoYLeaf.class
 org/oz/composite/ChainExcecutionAbs.class
+org/oz/composite/TestConfig.class

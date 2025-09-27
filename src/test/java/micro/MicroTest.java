@@ -1,17 +1,28 @@
 package micro;
 
+import org.oz.composite.TestConfig;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.oz.composite.ChainExcecutionAbs;
-import org.oz.composite.IProcessData;
-import org.oz.composite.ProcessData;
-import org.oz.composite.ProcessUtil;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.assertj.core.api.Assertions.*;
-import org.springframework.util.Assert;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.oz.composite.*;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@SpringBootTest(classes=MicroTest.class)
+@ExtendWith(SpringExtension.class)
+@ContextConfiguration(classes = TestConfig.class)
 public class MicroTest {
+
+    @Autowired
+    @Qualifier("DoXLeaf")
+    public IChainExecution doXLeaf;
+    @Autowired
+    @Qualifier("DoYLeaf")
+    public IChainExecution doYLeaf;
+    @Autowired
+    @Qualifier("ExcecutorCompo")
+    public IChainExecution excecutorCompo;
 
     @Test
     public void basicTest() {
@@ -43,5 +54,13 @@ public class MicroTest {
         Assertions.assertTrue(pData.getStatusCode() == ProcessUtil.OK);
     }
 
+    @Test
+    public void vasicSpringTest() {
+        ProcessData pData = new ProcessData();
+        excecutorCompo.add(doXLeaf);
+        excecutorCompo.add(doYLeaf);
+        Assertions.assertTrue(excecutorCompo.execute(pData));
+        Assertions.assertTrue(pData.getStatusCode() == ProcessUtil.OK);
+    }
 
 }
